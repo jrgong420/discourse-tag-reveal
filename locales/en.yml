@@ -1,0 +1,5 @@
+en:
+  theme_metadata:
+    description: Theme component to shorten tag display across the forum UI.
+    settings:
+      example_setting: A description of a setting.
