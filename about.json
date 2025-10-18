@@ -1,12 +1,12 @@
 {
-  "name": "Tag Shortener",
+  "name": "Tag Reveal",
   "component": true,
   "authors": "jrgong",
-  "about_url": "TODO: Put your theme's public repo or Meta topic URL here",
-  "license_url": "TODO: Put your theme's LICENSE URL here",
-  "learn_more": "TODO",
+  "about_url": "https://github.com/jrgong420/discourse-tag-reveal",
+  "license_url": "https://github.com/jrgong420/discourse-tag-reveal/blob/main/LICENSE",
+  "learn_more": "https://github.com/jrgong420/discourse-tag-reveal",
   "theme_version": "0.0.1",
-  "minimum_discourse_version": null,
+  "minimum_discourse_version": "3.6.0",
   "maximum_discourse_version": null,
   "assets": {},
   "modifiers": {}

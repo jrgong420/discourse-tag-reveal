@@ -1,0 +1,38 @@
+// Tag Reveal Theme Component Styles
+
+// Hide tags that are beyond the limit
+.ts-hidden {
+  display: none !important;
+}
+
+// Toggle button inherits Discourse's .discourse-tag and .box styles
+// Only override colors to visually differentiate from regular tags
+.discourse-tag.ts-toggle {
+  background-color: var(--primary-100);
+  cursor: pointer;
+  color: var(--primary-800);
+  user-select: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  border: 1px solid var(--primary-400);
+
+  &:hover {
+    --d-tag-background-color: var(--tertiary);
+  color: var(--primary-800);
+
+  }
+a
+  &:focus {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 2px;
+  }
+
+  &:active {
+    --d-tag-background-color: var(--tertiary-high);
+  color: var(--primary-800);
+  }
+}
+
+// Keep layout intact; only ensure toggle displays inline with tags
+.discourse-tags .ts-toggle {
+  display: inline-block;
+}

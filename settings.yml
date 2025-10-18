@@ -1,2 +1,11 @@
-example_setting:
-  default: true
+max_tags_per_topic:
+  type: integer
+  default: 5
+  description: "Maximum number of tags to display initially before showing the '+X more tags' toggle."
+
+toggle_tag_style:
+  type: enum
+  default: "box"
+  choices:
+    - box
+  description: "Visual style for the expand/collapse toggle button to match tag appearance"

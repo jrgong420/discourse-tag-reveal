@@ -1,2 +1,9 @@
-node_modules
 .discourse-site
+node_modules
+HELP
+
+.env
+.envrc
+.DS_Store
+node_modules/
+.augment
