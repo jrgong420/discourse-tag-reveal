@@ -27,7 +27,7 @@ A Discourse theme component that shortens long tag lists in topic lists by showi
   - `js.tag_reveal.more_tags`: "+%{count} more tags"
   - `js.tag_reveal.hide`: "hide"
 - Theme Settings (`settings.yml`):
-  - `max_tags_per_topic` (integer, default 5)
+  - `max_tags_visible` (integer, default 5)
   - `toggle_tag_style` (enum: `box`, default `box`)
 
 ## Compatibility
@@ -52,7 +52,7 @@ A Discourse theme component that shortens long tag lists in topic lists by showi
 
 ### Required/Optional Configuration
 - Theme Settings (Admin → Customize → Themes → Tag Reveal → Settings):
-  - `max_tags_per_topic`: Maximum number of tags to show before collapsing
+  - `max_tags_visible`: Maximum number of tags to show before collapsing
   - `toggle_tag_style`: Visual style for the toggle (currently `box` to match tag appearance)
 
 ## Usage
@@ -68,6 +68,10 @@ A Discourse theme component that shortens long tag lists in topic lists by showi
 - Uses modern Discourse theme patterns: `apiInitializer`, `discourse-i18n`, themePrefix for translations
 - Scoped CSS keeps overrides minimal and aligned with core tag styling
 - Resilient to SPA navigation and infinite scroll via `api.onPageChange` + `MutationObserver`
+
+## AI Assistance & Provenance
+- This theme component was planned, implemented, and tested with the help of AI coding tools (Augment Agent by Augment Code, based on OpenAI GPT‑5).
+- A human reviewed changes and verified behavior locally (including linting/tests where applicable). The README and Meta announcement draft were also AI-assisted.
 
 ## License
 - MIT — see [LICENSE](./LICENSE)

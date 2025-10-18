@@ -1,4 +1,4 @@
-max_tags_per_topic:
+max_tags_visible:
   type: integer
   default: 5
   description: "Maximum number of tags to display initially before showing the '+X more tags' toggle."

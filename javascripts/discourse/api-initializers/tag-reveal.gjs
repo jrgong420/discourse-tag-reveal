@@ -2,10 +2,13 @@ import { apiInitializer } from "discourse/lib/api";
 import { i18n } from "discourse-i18n";
 
 export default apiInitializer((api) => {
-  // Use theme setting; fallback to 5 if missing
-  const limit = (typeof settings !== "undefined" && Number.isInteger(settings.max_tags_per_topic))
-    ? settings.max_tags_per_topic
-    : 5;
+  // Use theme setting (new name preferred); fallback to old key or 5 if missing
+  const limit =
+    typeof settings !== "undefined" && Number.isInteger(settings.max_tags_visible)
+      ? settings.max_tags_visible
+      : typeof settings !== "undefined" && Number.isInteger(settings.max_tags_per_topic)
+      ? settings.max_tags_per_topic
+      : 5;
 
   // Process a single topic row to truncate tags and add toggle
   function processTopic(row) {
