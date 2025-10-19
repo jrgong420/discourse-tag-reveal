@@ -53,14 +53,14 @@ export default apiInitializer((api) => {
         }
       `;
     } else if (style === "outline") {
-      // Crisper: border + tint + base elevation + stronger hover tint + vertical spacing
+      // Crisper: outline + tint + base elevation + stronger hover tint
       rowCSS = `
         ${rowSelectors} {
-          border: 1px solid var(--tertiary);
+          outline: 1px solid var(--tertiary);
+          outline-offset: -2px;
+          border-radius: 7px;
           background: color-mix(in srgb, var(--tertiary) 5%, transparent);
           box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
-          border-radius: var(--border-radius);
-          margin-block: var(--space-1);
           transition: background-color 160ms ease;
         }
         ${rowSelectors}:hover {
