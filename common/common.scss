@@ -12,7 +12,9 @@
   cursor: pointer;
   color: var(--primary-800);
   user-select: none;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   border: 1px solid var(--primary-400);
 
   &:hover {
@@ -27,7 +29,7 @@
 
   &:active {
     --d-tag-background-color: var(--tertiary-high);
-  color: var(--primary-800);
+    color: var(--primary-800);
   }
 }
 

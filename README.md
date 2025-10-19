@@ -3,6 +3,7 @@
 A Discourse theme component that shortens long tag lists in topic lists by showing only the first N tags and adding an accessible "+X more tags" toggle. Users can expand to see all tags and collapse back to the shortened view.
 
 ## Key Features
+
 - Limits the number of visible tags per topic row (configurable via theme setting)
 - Adds an accessible toggle styled like a tag (keyboard and screen-reader friendly)
 - Localized UI text (uses themePrefix and `discourse-i18n`)
@@ -11,6 +12,7 @@ A Discourse theme component that shortens long tag lists in topic lists by showi
 - No server-side changes; pure theme component
 
 ## How It Works (Technical Overview)
+
 - JavaScript initializer (`javascripts/discourse/api-initializers/tag-reveal.gjs`):
   - On page change, resets prior processing and re-applies truncation logic
   - Finds `.discourse-tags` within each `.topic-list-item, .latest-topic-list-item`
@@ -31,6 +33,7 @@ A Discourse theme component that shortens long tag lists in topic lists by showi
   - `toggle_tag_style` (enum: `box`, default `box`)
 
 ## Compatibility
+
 - Minimum Discourse version: 3.6.0 (from `about.json`)
 - Discourse features: relies on standard tag UI (`.discourse-tags`). For best results, ensure tagging is enabled (Admin → Settings → Tags).
 - Browser compatibility: Uses modern DOM APIs (querySelector, classList, MutationObserver) supported by all evergreen browsers. Matches Discourse’s own support policy.
@@ -39,6 +42,7 @@ A Discourse theme component that shortens long tag lists in topic lists by showi
 ## Installation
 
 ### Install via Admin Panel
+
 1. Log in as an admin and go to Admin → Customize → Themes
 2. Click "Install" → "From a git repository"
 3. Paste the repo URL: `https://github.com/jrgong420/discourse-tag-reveal`
@@ -47,35 +51,43 @@ A Discourse theme component that shortens long tag lists in topic lists by showi
 6. Click the component, open the Settings tab, and configure as needed
 
 ### Install from GitHub (direct link)
+
 - Repository: https://github.com/jrgong420/discourse-tag-reveal
 - This component follows Discourse’s theme component structure and can be installed directly in Admin as above.
 
 ### Required/Optional Configuration
+
 - Theme Settings (Admin → Customize → Themes → Tag Reveal → Settings):
   - `max_tags_visible`: Maximum number of tags to show before collapsing
   - `toggle_tag_style`: Visual style for the toggle (currently `box` to match tag appearance)
 
 ## Usage
+
 - No template changes required. Once installed and enabled, topic lists automatically show only the first N tags.
 - Clicking the "+X more tags" toggle expands to reveal all tags; clicking "hide" collapses again.
 - Adjust the limit anytime via the theme setting.
 
 ## Screenshots
+
 - Desktop: Add `screenshots/desktop.png`
 - Mobile: Add `screenshots/mobile.png`
 
 ## Development Notes
+
 - Uses modern Discourse theme patterns: `apiInitializer`, `discourse-i18n`, themePrefix for translations
 - Scoped CSS keeps overrides minimal and aligned with core tag styling
 - Resilient to SPA navigation and infinite scroll via `api.onPageChange` + `MutationObserver`
 
 ## AI Assistance & Provenance
+
 - This theme component was planned, implemented, and tested with the help of AI coding tools (Augment Agent by Augment Code, based on OpenAI GPT‑5).
 - A human reviewed changes and verified behavior locally (including linting/tests where applicable). The README and Meta announcement draft were also AI-assisted.
 
 ## License
+
 - MIT — see [LICENSE](./LICENSE)
 
 ## Links
+
 - About/Repo: https://github.com/jrgong420/discourse-tag-reveal
 - Discourse install guide: https://meta.discourse.org/t/how-do-i-install-a-theme-or-theme-component/63682
