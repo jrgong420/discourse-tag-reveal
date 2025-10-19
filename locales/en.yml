@@ -4,6 +4,8 @@ en:
     settings:
       max_tags_visible: "Maximum number of tags to display initially before showing the '+X more tags' toggle."
       toggle_tag_style: "Visual style for the expand/collapse toggle button to match tag appearance"
+      highlighted_tags: "Tags configured here will be moved to the front of topic tag lists and visually highlighted with accent styling."
+
   js:
     tag_reveal:
       more_tags: "+%{count} more tags"

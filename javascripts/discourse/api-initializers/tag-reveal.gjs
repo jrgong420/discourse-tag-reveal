@@ -7,6 +7,61 @@ export default apiInitializer((api) => {
   const siteSettings = api.container.lookup("service:site-settings");
   const limit = Math.min(settings.max_tags_visible, siteSettings.max_tags_per_topic);
 
+  // Parse highlighted tags from theme setting (pipe-separated)
+  const highlightedTags = (settings.highlighted_tags || "")
+    .split("|")
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
+  const highlightedTagsSet = new Set(highlightedTags);
+
+  // Generate and inject dynamic CSS for highlighted tags
+  function injectHighlightedTagsCSS() {
+    // Remove any existing injected styles
+    const existingStyle = document.getElementById("ts-highlighted-css");
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+
+    // Only inject if we have highlighted tags configured
+    if (highlightedTags.length === 0) {
+      return;
+    }
+
+    // Build CSS selectors for topic rows and tag chips
+    const rowSelectors = highlightedTags
+      .map((tag) => `.topic-list-item.tag-${tag}`)
+      .join(", ");
+    const tagSelectors = highlightedTags
+      .map((tag) => `.discourse-tag[data-tag-name="${tag}"]`)
+      .join(", ");
+
+    const css = `
+      /* Highlighted topic rows - tertiary accent */
+      ${rowSelectors} {
+        border-left: 3px solid var(--tertiary);
+        background: color-mix(in srgb, var(--tertiary) 6%, transparent);
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+      }
+
+      ${rowSelectors}:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      /* Highlighted tag chips - higher contrast */
+      ${tagSelectors} {
+        color: var(--tertiary);
+        border-color: var(--tertiary);
+        background: color-mix(in srgb, var(--tertiary) 12%, transparent);
+        font-weight: 600;
+      }
+    `;
+
+    const styleEl = document.createElement("style");
+    styleEl.id = "ts-highlighted-css";
+    styleEl.textContent = css;
+    document.head.appendChild(styleEl);
+  }
+
   // Process a single topic row to truncate tags and add toggle
   function processTopic(row) {
     // Skip if already processed
@@ -20,9 +75,49 @@ export default apiInitializer((api) => {
       return;
     }
 
-    // Get all tag elements
+    // Reorder tags by highlighted tags (if configured) BEFORE any visibility calculations
+    const origTags = Array.from(tagsContainer.querySelectorAll("a.discourse-tag"));
+    if (highlightedTagsSet.size > 0 && origTags.length > 1) {
+      const highlightedNodes = [];
+      const otherNodes = [];
+      origTags.forEach((a) => {
+        const name =
+          a.dataset?.tagName?.toLowerCase?.() ||
+          (a.textContent || "").trim().toLowerCase();
+        if (highlightedTagsSet.has(name)) {
+          highlightedNodes.push(a);
+        } else {
+          otherNodes.push(a);
+        }
+      });
+
+      if (highlightedNodes.length > 0) {
+        const ordered = highlightedNodes.concat(otherNodes);
+        const existingSeps = Array.from(
+          tagsContainer.querySelectorAll(".discourse-tags__tag-separator")
+        );
+
+        // Rebuild container: tag, sep, tag, sep, ...
+        tagsContainer.innerHTML = "";
+        ordered.forEach((tagEl, idx) => {
+          tagsContainer.appendChild(tagEl);
+          if (idx < ordered.length - 1) {
+            // Reuse existing separators if available
+            const sepEl = existingSeps[idx] || document.createElement("span");
+            if (!existingSeps[idx]) {
+              sepEl.className = "discourse-tags__tag-separator";
+            }
+            tagsContainer.appendChild(sepEl);
+          }
+        });
+      }
+    }
+
+    // Get fresh tag and separator arrays after potential reordering
     const tags = Array.from(tagsContainer.querySelectorAll("a.discourse-tag"));
-    const seps = Array.from(tagsContainer.querySelectorAll(".discourse-tags__tag-separator"));
+    const seps = Array.from(
+      tagsContainer.querySelectorAll(".discourse-tags__tag-separator")
+    );
 
     // If tags count is within limit, no need to truncate
     if (tags.length <= limit) {
@@ -151,6 +246,9 @@ export default apiInitializer((api) => {
         el.classList.remove("ts-hidden");
       });
     });
+
+    // Inject highlighted tags CSS (removes previous injection if exists)
+    injectHighlightedTagsCSS();
 
     // After render, process current topics and observe for changes
     schedule("afterRender", () => {
