@@ -59,12 +59,12 @@ export default apiInitializer((api) => {
           outline: 1px solid var(--tertiary);
           outline-offset: -2px;
           border-radius: 7px;
-          background: color-mix(in srgb, var(--tertiary) 5%, transparent);
+          background: color-mix(in srgb, var(--tertiary) 5%, transparent) !important;
           box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
           transition: background-color 160ms ease;
         }
         ${rowSelectors}:hover {
-          background: color-mix(in srgb, var(--tertiary) 8%, transparent);
+          background: color-mix(in srgb, var(--tertiary) 8%, transparent) !important;
         }
       `;
     } else if (style === "card") {
