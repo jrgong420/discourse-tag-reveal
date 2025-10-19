@@ -53,18 +53,13 @@ export default apiInitializer((api) => {
         }
       `;
     } else if (style === "outline") {
-      // Crisper: outline + tint + base elevation + stronger hover tint
+      // Crisper: outline + base elevation
       rowCSS = `
         ${rowSelectors} {
           outline: 1px solid var(--tertiary);
           outline-offset: -2px;
           border-radius: 7px;
-          background: color-mix(in srgb, var(--tertiary) 5%, transparent) !important;
           box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
-          transition: background-color 160ms ease;
-        }
-        ${rowSelectors}:hover {
-          background: color-mix(in srgb, var(--tertiary) 8%, transparent) !important;
         }
       `;
     } else if (style === "card") {
@@ -94,12 +89,28 @@ export default apiInitializer((api) => {
       }
     `;
 
+    // Title color accent (common across all styles)
+    const titleSelectors = highlightedTags
+      .map((tag) => `.topic-list-item.tag-${tag} a.title:not(.badge-notification)`)
+      .join(", ");
+    const titleCSS = `
+      ${titleSelectors} {
+        color: var(--tertiary) !important;
+      }
+      ${titleSelectors}:hover {
+        color: var(--tertiary-hover) !important;
+      }
+    `;
+
     const css = `
       /* Highlighted topic rows - ${style} style */
       ${rowCSS}
 
       /* Highlighted tag chips - higher contrast */
       ${chipCSS}
+
+      /* Highlighted topic titles - tertiary color */
+      ${titleCSS}
     `;
 
     const styleEl = document.createElement("style");
