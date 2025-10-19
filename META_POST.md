@@ -6,13 +6,13 @@ Would love to hear your feedback!
 
 ---
 
-| | | |
-|----|----|----|
-| :information_source: | **Summary** | Tag Reveal |
-| :eyeglasses: | **Preview** | Not available... |
-| :hammer_and_wrench: | **Repository** | https://github.com/jrgong420/discourse-tag-reveal |
-| :question: | **Install Guide** | [How to install a theme or theme component](https://meta.discourse.org/t/how-do-i-install-a-theme-or-theme-component/63682) |
-| :open_book: | **New to Discourse Themes?** | [Beginner's guide to using Discourse Themes](https://meta.discourse.org/t/beginners-guide-to-using-discourse-themes/91966) |
+|                      |                              |                                                                                                                             |
+| -------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| :information_source: | **Summary**                  | Tag Reveal                                                                                                                  |
+| :eyeglasses:         | **Preview**                  | Not available...                                                                                                            |
+| :hammer_and_wrench:  | **Repository**               | https://github.com/jrgong420/discourse-tag-reveal                                                                           |
+| :question:           | **Install Guide**            | [How to install a theme or theme component](https://meta.discourse.org/t/how-do-i-install-a-theme-or-theme-component/63682) |
+| :open_book:          | **New to Discourse Themes?** | [Beginner's guide to using Discourse Themes](https://meta.discourse.org/t/beginners-guide-to-using-discourse-themes/91966)  |
 
 Discourse Tag Reveal is a lightweight theme component that keeps topic lists tidy by showing only the first N tags per topic and replacing the rest with an accessible "+X more tags" toggle. Users can expand to see all tags and collapse back to the shortened view. It works out of the box with Discourse’s standard tag UI and requires no server-side changes.
 

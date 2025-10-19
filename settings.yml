@@ -10,7 +10,6 @@ toggle_tag_style:
     - box
   description: "Visual style for the expand/collapse toggle button to match tag appearance"
 
-
 highlighted_tags:
   type: list
   list_type: tag

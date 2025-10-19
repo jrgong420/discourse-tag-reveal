@@ -5,7 +5,10 @@ import { i18n } from "discourse-i18n";
 export default apiInitializer((api) => {
   // Combine theme setting with site setting to respect both limits
   const siteSettings = api.container.lookup("service:site-settings");
-  const limit = Math.min(settings.max_tags_visible, siteSettings.max_tags_per_topic);
+  const limit = Math.min(
+    settings.max_tags_visible,
+    siteSettings.max_tags_per_topic
+  );
 
   // Parse highlighted tags from theme setting (pipe-separated)
   const highlightedTags = (settings.highlighted_tags || "")
@@ -53,13 +56,18 @@ export default apiInitializer((api) => {
         }
       `;
     } else if (style === "outline") {
-      // Crisper: outline + base elevation
+      // Crisper: outline + tint + base elevation + stronger hover tint
       rowCSS = `
         ${rowSelectors} {
           outline: 1px solid var(--tertiary);
           outline-offset: -2px;
           border-radius: 7px;
+          background: color-mix(in srgb, var(--tertiary) 5%, transparent);
           box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+          transition: background-color 160ms ease;
+        }
+        ${rowSelectors}:hover {
+          background: color-mix(in srgb, var(--tertiary) 8%, transparent);
         }
       `;
     } else if (style === "card") {
@@ -89,28 +97,12 @@ export default apiInitializer((api) => {
       }
     `;
 
-    // Title color accent (common across all styles)
-    const titleSelectors = highlightedTags
-      .map((tag) => `.topic-list-item.tag-${tag} a.title:not(.badge-notification)`)
-      .join(", ");
-    const titleCSS = `
-      ${titleSelectors} {
-        color: var(--tertiary) !important;
-      }
-      ${titleSelectors}:hover {
-        color: var(--tertiary-hover) !important;
-      }
-    `;
-
     const css = `
       /* Highlighted topic rows - ${style} style */
       ${rowCSS}
 
       /* Highlighted tag chips - higher contrast */
       ${chipCSS}
-
-      /* Highlighted topic titles - tertiary color */
-      ${titleCSS}
     `;
 
     const styleEl = document.createElement("style");
@@ -133,7 +125,9 @@ export default apiInitializer((api) => {
     }
 
     // Reorder tags by highlighted tags (if configured) BEFORE any visibility calculations
-    const origTags = Array.from(tagsContainer.querySelectorAll("a.discourse-tag"));
+    const origTags = Array.from(
+      tagsContainer.querySelectorAll("a.discourse-tag")
+    );
     if (highlightedTagsSet.size > 0 && origTags.length > 1) {
       const highlightedNodes = [];
       const otherNodes = [];
@@ -274,7 +268,9 @@ export default apiInitializer((api) => {
 
   // Process all topic rows on the page
   function processAllTopics() {
-    const topicRows = document.querySelectorAll(".topic-list-item, .latest-topic-list-item");
+    const topicRows = document.querySelectorAll(
+      ".topic-list-item, .latest-topic-list-item"
+    );
     topicRows.forEach((row) => {
       processTopic(row);
     });
@@ -314,7 +310,6 @@ export default apiInitializer((api) => {
     });
   });
 
-
   // MutationObserver lifecycle (scoped and reattached per page)
   let observer = null;
 
@@ -339,7 +334,9 @@ export default apiInitializer((api) => {
             }
             const topicRows =
               node.querySelectorAll &&
-              node.querySelectorAll(".topic-list-item, .latest-topic-list-item");
+              node.querySelectorAll(
+                ".topic-list-item, .latest-topic-list-item"
+              );
             if (topicRows) {
               topicRows.forEach((row) => processTopic(row));
             }
