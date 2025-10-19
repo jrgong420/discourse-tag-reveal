@@ -35,25 +35,69 @@ export default apiInitializer((api) => {
       .map((tag) => `.discourse-tag[data-tag-name="${tag}"]`)
       .join(", ");
 
-    const css = `
-      /* Highlighted topic rows - tertiary accent */
-      ${rowSelectors} {
-        border-left: 3px solid var(--tertiary);
-        background: color-mix(in srgb, var(--tertiary) 6%, transparent);
-        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
-      }
+    // Get selected style preset (default: left-border)
+    const style = settings.highlighted_style || "left-border";
 
-      ${rowSelectors}:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      }
+    // Generate row accent CSS based on selected style
+    let rowCSS = "";
+    if (style === "left-border") {
+      // Minimal: left border + subtle tint + hover shadow
+      rowCSS = `
+        ${rowSelectors} {
+          border-left: 3px solid var(--tertiary);
+          background: color-mix(in srgb, var(--tertiary) 6%, transparent);
+          transition: box-shadow 160ms ease;
+        }
+        ${rowSelectors}:hover {
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+      `;
+    } else if (style === "outline") {
+      // Crisper: outline + tint + base elevation + stronger hover tint
+      rowCSS = `
+        ${rowSelectors} {
+          outline: 1px solid var(--tertiary);
+          background: color-mix(in srgb, var(--tertiary) 5%, transparent);
+          box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+          transition: background-color 160ms ease;
+        }
+        ${rowSelectors}:hover {
+          background: color-mix(in srgb, var(--tertiary) 8%, transparent);
+        }
+      `;
+    } else if (style === "card") {
+      // Card-like: left border + rounded + padding + stronger elevation on hover
+      rowCSS = `
+        ${rowSelectors} {
+          border-left: 3px solid var(--tertiary);
+          background: var(--tertiary-very-low);
+          border-radius: var(--border-radius);
+          padding-block: var(--space-2);
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+          transition: box-shadow 160ms ease;
+        }
+        ${rowSelectors}:hover {
+          box-shadow: 0 3px 12px rgba(0, 0, 0, 0.10);
+        }
+      `;
+    }
 
-      /* Highlighted tag chips - higher contrast */
+    // Tag chip accent (common across all styles)
+    const chipCSS = `
       ${tagSelectors} {
         color: var(--tertiary);
         border-color: var(--tertiary);
         background: color-mix(in srgb, var(--tertiary) 12%, transparent);
         font-weight: 600;
       }
+    `;
+
+    const css = `
+      /* Highlighted topic rows - ${style} style */
+      ${rowCSS}
+
+      /* Highlighted tag chips - higher contrast */
+      ${chipCSS}
     `;
 
     const styleEl = document.createElement("style");
