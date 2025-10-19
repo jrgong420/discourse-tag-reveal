@@ -17,10 +17,9 @@
 
   &:hover {
     --d-tag-background-color: var(--tertiary);
-  color: var(--primary-800);
-
+    color: var(--primary-800);
   }
-a
+
   &:focus {
     outline: 2px solid var(--tertiary);
     outline-offset: 2px;

@@ -1,14 +1,11 @@
+import { schedule } from "@ember/runloop";
 import { apiInitializer } from "discourse/lib/api";
 import { i18n } from "discourse-i18n";
 
 export default apiInitializer((api) => {
-  // Use theme setting (new name preferred); fallback to old key or 5 if missing
-  const limit =
-    typeof settings !== "undefined" && Number.isInteger(settings.max_tags_visible)
-      ? settings.max_tags_visible
-      : typeof settings !== "undefined" && Number.isInteger(settings.max_tags_per_topic)
-      ? settings.max_tags_per_topic
-      : 5;
+  // Combine theme setting with site setting to respect both limits
+  const siteSettings = api.container.lookup("service:site-settings");
+  const limit = Math.min(settings.max_tags_visible, siteSettings.max_tags_per_topic);
 
   // Process a single topic row to truncate tags and add toggle
   function processTopic(row) {
@@ -78,21 +75,32 @@ export default apiInitializer((api) => {
       const isExpanded = toggle.getAttribute("aria-expanded") === "true";
 
       if (isExpanded) {
-        // Collapse: hide tags beyond limit
+        // Collapse: hide tags beyond limit and restore correct separators
+        // First show all separators to recompute state cleanly
+        seps.forEach((sep) => sep.classList.remove("ts-hidden"));
+
         tags.forEach((tag, index) => {
           if (index >= limit) {
             tag.classList.add("ts-hidden");
+            if (index - 1 >= 0 && seps[index - 1]) {
+              seps[index - 1].classList.add("ts-hidden");
+            }
           }
         });
+
+        if (seps[limit - 1]) {
+          seps[limit - 1].classList.add("ts-hidden");
+        }
+
         toggle.setAttribute("aria-expanded", "false");
         toggle.textContent = i18n(themePrefix("js.tag_reveal.more_tags"), {
           count: hiddenCount,
         });
       } else {
-        // Expand: show all tags
-        tags.forEach((tag) => {
-          tag.classList.remove("ts-hidden");
-        });
+        // Expand: show all tags and separators
+        tags.forEach((tag) => tag.classList.remove("ts-hidden"));
+        seps.forEach((sep) => sep.classList.remove("ts-hidden"));
+
         toggle.setAttribute("aria-expanded", "true");
         toggle.textContent = i18n(themePrefix("js.tag_reveal.hide"));
       }
@@ -120,8 +128,14 @@ export default apiInitializer((api) => {
     });
   }
 
-  // Initial processing after DOM is ready
+  // Process after render on each page change and (re)attach observer
   api.onPageChange(() => {
+    // Disconnect existing observer to avoid duplicates
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+
     // Reset state first
     document.querySelectorAll("[data-ts-processed]").forEach((row) => {
       delete row.dataset.tsProcessed;
@@ -132,48 +146,55 @@ export default apiInitializer((api) => {
         existingToggle.remove();
       }
 
-      // Unhide all tags
-      row.querySelectorAll(".ts-hidden").forEach((tag) => {
-        tag.classList.remove("ts-hidden");
+      // Unhide tags and separators
+      row.querySelectorAll(".ts-hidden").forEach((el) => {
+        el.classList.remove("ts-hidden");
       });
     });
 
-    // Process topics after a short delay to ensure DOM is ready
-    setTimeout(() => {
+    // After render, process current topics and observe for changes
+    schedule("afterRender", () => {
       processAllTopics();
-    }, 100);
-  });
-
-  // Also process on initial load
-  setTimeout(() => {
-    processAllTopics();
-  }, 100);
-
-  // Watch for new topics added via infinite scroll
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === 1) {
-          // Check if the added node is a topic row
-          if (node.classList && (node.classList.contains("topic-list-item") || node.classList.contains("latest-topic-list-item"))) {
-            processTopic(node);
-          }
-          // Also check for topic rows within the added node
-          const topicRows = node.querySelectorAll && node.querySelectorAll(".topic-list-item, .latest-topic-list-item");
-          if (topicRows) {
-            topicRows.forEach((row) => processTopic(row));
-          }
-        }
-      });
+      setupObserver();
     });
   });
 
-  // Observe the main content area for changes
-  const targetNode = document.querySelector("#main-outlet");
-  if (targetNode) {
-    observer.observe(targetNode, {
-      childList: true,
-      subtree: true,
+
+  // MutationObserver lifecycle (scoped and reattached per page)
+  let observer = null;
+
+  function setupObserver() {
+    const containers = document.querySelectorAll(
+      ".topic-list, .latest-topic-list, #list-area, #main-outlet"
+    );
+    if (!containers || containers.length === 0) {
+      return;
+    }
+
+    observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === 1) {
+            if (
+              node.classList &&
+              (node.classList.contains("topic-list-item") ||
+                node.classList.contains("latest-topic-list-item"))
+            ) {
+              processTopic(node);
+            }
+            const topicRows =
+              node.querySelectorAll &&
+              node.querySelectorAll(".topic-list-item, .latest-topic-list-item");
+            if (topicRows) {
+              topicRows.forEach((row) => processTopic(row));
+            }
+          }
+        });
+      });
+    });
+
+    containers.forEach((el) => {
+      observer.observe(el, { childList: true, subtree: true });
     });
   }
 });
