@@ -1,11 +1,11 @@
-import { schedule } from "@ember/runloop";
+import { computed } from "@ember/object";
 import { apiInitializer } from "discourse/lib/api";
 import { i18n } from "discourse-i18n";
 
 export default apiInitializer((api) => {
   // Combine theme setting with site setting to respect both limits
   const siteSettings = api.container.lookup("service:site-settings");
-  const limit = Math.min(
+  const maxVisibleTags = Math.min(
     settings.max_tags_visible,
     siteSettings.max_tags_per_topic
   );
@@ -16,6 +16,141 @@ export default apiInitializer((api) => {
     .map((t) => t.trim().toLowerCase())
     .filter(Boolean);
   const highlightedTagsSet = new Set(highlightedTags);
+
+  // Store topic models by ID for click handler access
+  let topicModels = {};
+
+  // Track current route context
+  const router = api.container.lookup("service:router");
+  let isTopicRoute = false;
+
+  // Helper to determine if tags should be collapsed in current context
+  function shouldCollapseTags() {
+    if (isTopicRoute) {
+      return !!settings.collapse_in_topic_view;
+    }
+    return true; // always collapse on list pages
+  }
+
+  // Override topic model to control visible tags based on revealTags state
+  api.modifyClass(
+    "model:topic",
+    (Superclass) =>
+      class extends Superclass {
+        revealTags = false;
+
+        init() {
+          super.init(...arguments);
+          topicModels[this.id] = this;
+        }
+
+        @computed("tags")
+        get visibleListTags() {
+          const baseTags = super.visibleListTags || [];
+
+          // Separate highlighted tags from regular tags
+          const highlightedList = [];
+          const regularList = [];
+
+          baseTags.forEach((tag) => {
+            const tagName = (tag || "").toLowerCase();
+            if (highlightedTagsSet.has(tagName)) {
+              highlightedList.push(tag);
+            } else {
+              regularList.push(tag);
+            }
+          });
+
+          // If collapsing is disabled in current context, or if expanded, return all tags
+          if (!shouldCollapseTags() || this.revealTags) {
+            return [...highlightedList, ...regularList];
+          }
+
+          // If collapsed, return highlighted + limited regular tags
+          const limitedRegular = regularList.slice(0, maxVisibleTags);
+          return [...highlightedList, ...limitedRegular];
+        }
+      }
+  );
+
+  // Add toggle button via tags HTML callback
+  api.addTagsHtmlCallback(
+    (topic) => {
+      // Don't show toggle if collapsing is disabled in current context
+      if (!shouldCollapseTags()) {
+        return "";
+      }
+
+      const allTags = topic.tags || [];
+      if (allTags.length === 0) {
+        return "";
+      }
+
+      // Calculate effective limit (highlighted are exempt)
+      const highlightedCount = allTags.filter((tag) =>
+        highlightedTagsSet.has((tag || "").toLowerCase())
+      ).length;
+      const regularCount = allTags.length - highlightedCount;
+      const effectiveLimit = highlightedCount + Math.min(regularCount, maxVisibleTags);
+
+      // Only show toggle if there are hidden tags
+      if (allTags.length <= effectiveLimit) {
+        return "";
+      }
+
+      const isExpanded = topic.revealTags;
+      const hiddenCount = allTags.length - effectiveLimit;
+      const label = isExpanded
+        ? i18n(themePrefix("js.tag_reveal.hide"))
+        : i18n(themePrefix("js.tag_reveal.more_tags"), {
+            count: hiddenCount,
+          });
+
+      // Build class list: base classes + optional style class
+      const classList = ["discourse-tag", "ts-toggle", "reveal-tag-action"];
+      if (settings.toggle_tag_style === "box") {
+        classList.push("box");
+      }
+
+      return `<a class="${classList.join(" ")}" role="button" aria-expanded="${isExpanded}">${label}</a>`;
+    },
+    {
+      priority: siteSettings.max_tags_per_topic + 1,
+    }
+  );
+
+  // Handle toggle clicks via event delegation
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target;
+      if (!target?.matches(".reveal-tag-action")) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Find topic ID from closest topic row or topic header
+      const element =
+        target.closest("[data-topic-id]") ||
+        document.querySelector("h1[data-topic-id]");
+      const topicId = element?.dataset.topicId;
+      if (!topicId) {
+        return;
+      }
+
+      const topicModel = topicModels[topicId];
+      if (!topicModel) {
+        return;
+      }
+
+      // Toggle state and trigger re-render
+      topicModel.revealTags = !topicModel.revealTags;
+      topicModel.notifyPropertyChange("tags");
+    },
+    true
+  );
 
   // Generate and inject dynamic CSS for highlighted tags
   function injectHighlightedTagsCSS() {
@@ -111,242 +246,27 @@ export default apiInitializer((api) => {
     document.head.appendChild(styleEl);
   }
 
-  // Process a single topic row to truncate tags and add toggle
-  function processTopic(row) {
-    // Skip if already processed
-    if (row.dataset.tsProcessed) {
-      return;
-    }
-
-    // Find the tags container
-    const tagsContainer = row.querySelector(".discourse-tags");
-    if (!tagsContainer) {
-      return;
-    }
-
-    // Reorder tags by highlighted tags (if configured) BEFORE any visibility calculations
-    const origTags = Array.from(
-      tagsContainer.querySelectorAll("a.discourse-tag")
-    );
-    if (highlightedTagsSet.size > 0 && origTags.length > 1) {
-      const highlightedNodes = [];
-      const otherNodes = [];
-      origTags.forEach((a) => {
-        const name =
-          a.dataset?.tagName?.toLowerCase?.() ||
-          (a.textContent || "").trim().toLowerCase();
-        if (highlightedTagsSet.has(name)) {
-          highlightedNodes.push(a);
-        } else {
-          otherNodes.push(a);
-        }
-      });
-
-      if (highlightedNodes.length > 0) {
-        const ordered = highlightedNodes.concat(otherNodes);
-        const existingSeps = Array.from(
-          tagsContainer.querySelectorAll(".discourse-tags__tag-separator")
-        );
-
-        // Rebuild container: tag, sep, tag, sep, ...
-        tagsContainer.innerHTML = "";
-        ordered.forEach((tagEl, idx) => {
-          tagsContainer.appendChild(tagEl);
-          if (idx < ordered.length - 1) {
-            // Reuse existing separators if available
-            const sepEl = existingSeps[idx] || document.createElement("span");
-            if (!existingSeps[idx]) {
-              sepEl.className = "discourse-tags__tag-separator";
-            }
-            tagsContainer.appendChild(sepEl);
-          }
-        });
-      }
-    }
-
-    // Get fresh tag and separator arrays after potential reordering
-    const tags = Array.from(tagsContainer.querySelectorAll("a.discourse-tag"));
-    const seps = Array.from(
-      tagsContainer.querySelectorAll(".discourse-tags__tag-separator")
-    );
-
-    // If tags count is within limit, no need to truncate
-    if (tags.length <= limit) {
-      return;
-    }
-
-    // Mark as processed
-    row.dataset.tsProcessed = "true";
-
-    // Calculate hidden count
-    const hiddenCount = tags.length - limit;
-
-    // Hide tags beyond the limit and related separators
-    tags.forEach((tag, index) => {
-      if (index >= limit) {
-        tag.classList.add("ts-hidden");
-        // hide the separator before this tag (index-1)
-        if (index - 1 >= 0 && seps[index - 1]) {
-          seps[index - 1].classList.add("ts-hidden");
-        }
-      }
-    });
-    // Also hide separator after the last visible tag (limit - 1)
-    if (seps[limit - 1]) {
-      seps[limit - 1].classList.add("ts-hidden");
-    }
-
-    // Create toggle element
-    const toggle = document.createElement("a");
-
-    // Build class list: base classes + optional style class
-    const classList = ["discourse-tag", "ts-toggle"];
-    if (settings.toggle_tag_style === "box") {
-      classList.push("box");
-    }
-    toggle.className = classList.join(" ");
-
-    toggle.setAttribute("href", "#");
-    toggle.setAttribute("role", "button");
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.textContent = i18n(themePrefix("js.tag_reveal.more_tags"), {
-      count: hiddenCount,
-    });
-
-    // Toggle click handler
-    function handleToggle(e) {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const isExpanded = toggle.getAttribute("aria-expanded") === "true";
-
-      if (isExpanded) {
-        // Collapse: hide tags beyond limit and restore correct separators
-        // First show all separators to recompute state cleanly
-        seps.forEach((sep) => sep.classList.remove("ts-hidden"));
-
-        tags.forEach((tag, index) => {
-          if (index >= limit) {
-            tag.classList.add("ts-hidden");
-            if (index - 1 >= 0 && seps[index - 1]) {
-              seps[index - 1].classList.add("ts-hidden");
-            }
-          }
-        });
-
-        if (seps[limit - 1]) {
-          seps[limit - 1].classList.add("ts-hidden");
-        }
-
-        toggle.setAttribute("aria-expanded", "false");
-        toggle.textContent = i18n(themePrefix("js.tag_reveal.more_tags"), {
-          count: hiddenCount,
-        });
-      } else {
-        // Expand: show all tags and separators
-        tags.forEach((tag) => tag.classList.remove("ts-hidden"));
-        seps.forEach((sep) => sep.classList.remove("ts-hidden"));
-
-        toggle.setAttribute("aria-expanded", "true");
-        toggle.textContent = i18n(themePrefix("js.tag_reveal.hide"));
-      }
-    }
-
-    // Bind click event
-    toggle.addEventListener("click", handleToggle);
-
-    // Bind keyboard events (Enter and Space)
-    toggle.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        handleToggle(e);
-      }
-    });
-
-    // Insert toggle after the last visible tag
-    tagsContainer.appendChild(toggle);
-  }
-
-  // Process all topic rows on the page
-  function processAllTopics() {
-    const topicRows = document.querySelectorAll(
-      ".topic-list-item, .latest-topic-list-item"
-    );
-    topicRows.forEach((row) => {
-      processTopic(row);
-    });
-  }
-
-  // Process after render on each page change and (re)attach observer
+  // Inject highlighted tags CSS on page change and update route context
   api.onPageChange(() => {
-    // Disconnect existing observer to avoid duplicates
-    if (observer) {
-      observer.disconnect();
-      observer = null;
-    }
+    // Update route context
+    const currentRouteName = router.currentRouteName || "";
+    isTopicRoute = currentRouteName.startsWith("topic");
 
-    // Reset state first
-    document.querySelectorAll("[data-ts-processed]").forEach((row) => {
-      delete row.dataset.tsProcessed;
-
-      // Remove any existing toggles
-      const existingToggle = row.querySelector(".ts-toggle");
-      if (existingToggle) {
-        existingToggle.remove();
-      }
-
-      // Unhide tags and separators
-      row.querySelectorAll(".ts-hidden").forEach((el) => {
-        el.classList.remove("ts-hidden");
-      });
-    });
-
-    // Inject highlighted tags CSS (removes previous injection if exists)
+    // Inject highlighted tags CSS
     injectHighlightedTagsCSS();
 
-    // After render, process current topics and observe for changes
-    schedule("afterRender", () => {
-      processAllTopics();
-      setupObserver();
+    // Notify visible topic models to re-render tags if route context changed
+    const visibleTopicIds = new Set(
+      Array.from(document.querySelectorAll("[data-topic-id]"))
+        .map((el) => el.dataset.topicId)
+        .filter(Boolean)
+    );
+
+    visibleTopicIds.forEach((id) => {
+      const model = topicModels[id];
+      if (model) {
+        model.notifyPropertyChange("tags");
+      }
     });
   });
-
-  // MutationObserver lifecycle (scoped and reattached per page)
-  let observer = null;
-
-  function setupObserver() {
-    const containers = document.querySelectorAll(
-      ".topic-list, .latest-topic-list, #list-area, #main-outlet"
-    );
-    if (!containers || containers.length === 0) {
-      return;
-    }
-
-    observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === 1) {
-            if (
-              node.classList &&
-              (node.classList.contains("topic-list-item") ||
-                node.classList.contains("latest-topic-list-item"))
-            ) {
-              processTopic(node);
-            }
-            const topicRows =
-              node.querySelectorAll &&
-              node.querySelectorAll(
-                ".topic-list-item, .latest-topic-list-item"
-              );
-            if (topicRows) {
-              topicRows.forEach((row) => processTopic(row));
-            }
-          }
-        });
-      });
-    });
-
-    containers.forEach((el) => {
-      observer.observe(el, { childList: true, subtree: true });
-    });
-  }
 });

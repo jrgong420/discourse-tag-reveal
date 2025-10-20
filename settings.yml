@@ -1,7 +1,12 @@
 max_tags_visible:
   type: integer
   default: 5
-  description: "Maximum number of tags to display initially before showing the '+X more tags' toggle."
+  description: "Maximum number of regular (non-highlighted) tags to display initially. Highlighted tags are always shown and don't count toward this limit."
+
+collapse_in_topic_view:
+  type: bool
+  default: true
+  description: "Collapse/compact tags in the single topic view (topic header). When disabled, all tags are always shown on topic pages."
 
 toggle_tag_style:
   type: enum

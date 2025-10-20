@@ -2,7 +2,8 @@ en:
   theme_metadata:
     description: Theme component to shorten tag display across the forum UI.
     settings:
-      max_tags_visible: "Maximum number of tags to display initially before showing the '+X more tags' toggle."
+      max_tags_visible: "Maximum number of regular (non-highlighted) tags to display initially. Highlighted tags are always shown and don't count toward this limit."
+      collapse_in_topic_view: "Collapse/compact tags in the single topic view (topic header). When disabled, all tags are always shown on topic pages."
       toggle_tag_style: "Visual style for the expand/collapse toggle button to match tag appearance"
       highlighted_tags: "Tags configured here will be moved to the front of topic tag lists and visually highlighted with accent styling."
       highlighted_style: "Choose the accent style for highlighted topics (left-border: minimal, outline: crisper separation, card: elevated card-like appearance)."
